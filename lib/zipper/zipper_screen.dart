@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 
 import 'services/huffman_engine.dart';
-import 'services/drive_service.dart';
 
 class HuffmanZipperPage extends StatefulWidget {
   const HuffmanZipperPage({super.key});
@@ -18,8 +17,6 @@ class HuffmanZipperPage extends StatefulWidget {
 }
 
 class _HuffmanZipperPageState extends State<HuffmanZipperPage> {
-  final DriveService _driveService = DriveService();
-
   String? _fileName;
   Uint8List? _fileBytes;
   Uint8List? _processedBytes;
@@ -136,132 +133,6 @@ class _HuffmanZipperPageState extends State<HuffmanZipperPage> {
     }
   }
 
-  Future<void> _pickFromDrive() async {
-    try {
-      final user = await _driveService.signIn();
-
-      if (user == null) return;
-
-      final files = await _driveService.fetchDriveFiles();
-
-      if (!mounted) return;
-
-      showModalBottomSheet(
-        context: context,
-        backgroundColor: const Color(0xFF171B2E),
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        builder: (ctx) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 45,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                const Row(
-                  children: [
-                    Icon(Icons.cloud, color: Color(0xFF8B7CFF), size: 28),
-                    SizedBox(width: 12),
-                    Text(
-                      "Google Drive Files",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 15),
-
-                Flexible(
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: files.length,
-                    itemBuilder: (ctx, index) {
-                      final file = files[index];
-
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: ListTile(
-                          leading: Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF6C63FF).withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.insert_drive_file,
-                              color: Color(0xFF8B7CFF),
-                            ),
-                          ),
-                          title: Text(
-                            file.name ?? 'Untitled',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          subtitle: Text(
-                            file.size != null
-                                ? '${file.size} bytes'
-                                : 'Unknown size',
-                            style: const TextStyle(color: Colors.white54),
-                          ),
-                          onTap: () async {
-                            Navigator.pop(ctx);
-
-                            setState(() {
-                              _statusMessage = "Downloading ${file.name}...";
-                            });
-
-                            final bytes = await _driveService.downloadFile(
-                              file.id!,
-                            );
-
-                            setState(() {
-                              _fileName = file.name;
-                              _fileBytes = bytes;
-                              _processedBytes = null;
-                              _compressionRatio = null;
-
-                              _statusMessage =
-                                  "Downloaded ${file.name} (${bytes.length} bytes) from Google Drive.";
-                            });
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    } catch (e) {
-      setState(() {
-        _statusMessage = "Google Drive Error: $e";
-      });
-    }
-  }
-
   void _compressFile() {
     if (_fileBytes == null || _fileName == null) return;
 
@@ -357,9 +228,9 @@ class _HuffmanZipperPageState extends State<HuffmanZipperPage> {
         _statusMessage = "Downloaded $defaultName to your Downloads folder!";
       });
     } else {
-      final resultPath = await DriveService.saveFileToLocalDisk(
+      final resultPath = await FilePicker.platform.saveFile(
+        fileName: defaultName,
         bytes: _processedBytes!,
-        defaultFileName: defaultName,
       );
 
       if (resultPath != null) {
@@ -455,18 +326,6 @@ class _HuffmanZipperPageState extends State<HuffmanZipperPage> {
                     ),
                   ),
                 ],
-              ),
-
-              const SizedBox(height: 12),
-
-              SizedBox(
-                width: double.infinity,
-                child: _actionButton(
-                  icon: Icons.cloud_download,
-                  label: "Google Drive",
-                  color: const Color(0xFF4285F4),
-                  onPressed: _pickFromDrive,
-                ),
               ),
             ],
           ),

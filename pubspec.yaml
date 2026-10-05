@@ -1,0 +1,33 @@
+name: flutter_file_zipper
+description: "A new Flutter project."
+
+publish_to: 'none' 
+
+environment:
+  sdk: ^3.13.4
+
+
+dependencies:
+  flutter:
+    sdk: flutter
+  archive: ^4.3.0 # Add this line  
+  file_picker: ^8.0.0
+  google_sign_in: ^6.2.1
+  googleapis: ^13.1.0
+  extension_google_sign_in_as_googleapis_auth: ^2.0.1
+  cupertino_icons: ^1.0.8
+  web: ^1.1.1
+  file_system_access_api: ^2.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+
+  flutter_lints: ^6.0.0
+
+
+flutter:
+
+
+  uses-material-design: true

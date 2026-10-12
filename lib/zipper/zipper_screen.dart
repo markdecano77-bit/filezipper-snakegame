@@ -25,20 +25,84 @@ class _HuffmanZipperPageState extends State<HuffmanZipperPage> {
   double? _compressionRatio;
   int _processingTimeMs = 0;
 
-  Future<void> _pickLocalFile() async {
-    final result = await FilePicker.platform.pickFiles(withData: true);
+  
+Future<void> _pickLocalFile() async {
+  try {
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+      withData: true,
+    );
 
-    if (result != null && result.files.single.bytes != null) {
+    if (result == null || result.files.isEmpty) {
+      return;
+    }
+
+    final selectedFiles = result.files;
+
+    // Keep the existing behavior when selecting only one file.
+    if (selectedFiles.length == 1) {
+      final file = selectedFiles.first;
+
+      if (file.bytes == null) {
+        throw Exception('Unable to read ${file.name}.');
+      }
+
+      if (!mounted) return;
+
       setState(() {
-        _fileName = result.files.single.name;
-        _fileBytes = result.files.single.bytes;
+        _fileName = file.name;
+        _fileBytes = file.bytes!;
         _processedBytes = null;
         _compressionRatio = null;
+        _processingTimeMs = 0;
 
-        _statusMessage = "Loaded $_fileName (${_fileBytes!.length} bytes).";
+        _statusMessage =
+            'Loaded ${file.name} (${file.bytes!.length} bytes).';
       });
+
+      return;
     }
+
+    // Multiple files: combine them into one ZIP archive.
+    final archive = Archive();
+
+    for (final file in selectedFiles) {
+      final bytes = file.bytes;
+
+      if (bytes == null) {
+        throw Exception('Unable to read ${file.name}.');
+      }
+
+      archive.addFile(
+        ArchiveFile(file.name, bytes.length, bytes),
+      );
+    }
+
+    final zipBytes = ZipEncoder().encode(archive);
+
+    if (!mounted) return;
+
+    final outputBytes = Uint8List.fromList(zipBytes);
+
+    setState(() {
+      _fileName = 'selected_files.zip';
+      _fileBytes = outputBytes;
+      _processedBytes = outputBytes;
+      _compressionRatio = null;
+      _processingTimeMs = 0;
+
+      _statusMessage =
+          '${selectedFiles.length} files added to selected_files.zip. '
+          'Your ZIP archive is ready to save.';
+    });
+  } catch (e) {
+    if (!mounted) return;
+
+    setState(() {
+      _statusMessage = 'File Selection Error: $e';
+    });
   }
+}
 
   Future<void> _pickFolder() async {
     try {

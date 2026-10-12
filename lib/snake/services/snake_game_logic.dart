@@ -170,7 +170,7 @@ class SnakeGameLogic {
     bodySet.add(newHead);
 
     if (newHead == food) {
-      score += 10;
+      score += 1;
 
       if (score > highScore) {
         highScore = score;

@@ -177,7 +177,7 @@ class SnakeGameLogic {
       }
 
       if (mode == SnakeMode.adventure) {
-        final newLevel = (score ~/ 50) + 1;
+        final newLevel = (score ~/ 20) + 1;
 
         if (newLevel != level) {
           level = newLevel;

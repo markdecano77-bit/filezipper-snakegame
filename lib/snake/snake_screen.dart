@@ -16,12 +16,114 @@ class SnakeScreen extends StatefulWidget {
 
 class _SnakeScreenState extends State<SnakeScreen> {
   final SnakeGameLogic _game = SnakeGameLogic();
-
+  bool _showMenu = true;
   Timer? _timer;
 
   final FocusNode _focusNode = FocusNode();
 
   Offset? _touchStart;
+
+  void _startGame() {
+    setState(() {
+      _game.reset();
+      _showMenu = false;
+    });
+
+    _focusNode.requestFocus();
+  }
+
+  Widget _buildMainMenu() {
+    return Container(
+      color: const Color(0xFF101010),
+      child: Center(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.sports_esports,
+                size: 75,
+                color: Color(0xFF35B957),
+              ),
+
+              const SizedBox(height: 12),
+
+              const Text(
+                'SNAKE',
+                style: TextStyle(
+                  fontSize: 42,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF35B957),
+                  letterSpacing: 5,
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              Text(
+                'Eat. Grow. Survive.',
+                style: TextStyle(fontSize: 16, color: Colors.grey.shade400),
+              ),
+
+              const SizedBox(height: 35),
+
+              _menuButton(
+                icon: Icons.play_arrow,
+                label: 'PLAY',
+                onPressed: _startGame,
+              ),
+
+              const SizedBox(height: 12),
+
+              _menuButton(
+                icon: Icons.settings,
+                label: 'SETTINGS',
+                onPressed: _showSettings,
+              ),
+
+              const SizedBox(height: 12),
+
+              _menuButton(
+                icon: Icons.leaderboard,
+                label: 'LEADERBOARD',
+                onPressed: _showLeaderboard,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _menuButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return SizedBox(
+      width: 250,
+      height: 52,
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon),
+        label: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF168A3A),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -43,7 +145,7 @@ class _SnakeScreenState extends State<SnakeScreen> {
     _timer = Timer.periodic(Duration(milliseconds: _game.timerMilliseconds), (
       _,
     ) {
-      if (!mounted) return;
+      if (!mounted || _showMenu) return;
 
       setState(() {
         _game.tick();
@@ -93,11 +195,16 @@ class _SnakeScreenState extends State<SnakeScreen> {
   }
 
   void _onKeyEvent(KeyEvent event) {
-    if (event is! KeyDownEvent) {
-      return;
-    }
+    if (event is! KeyDownEvent) return;
 
     final key = event.logicalKey;
+
+    if (_showMenu) {
+      if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.space) {
+        _startGame();
+      }
+      return;
+    }
 
     if (key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.keyW) {
       _game.handleInput(Direction.up);
@@ -163,54 +270,71 @@ class _SnakeScreenState extends State<SnakeScreen> {
             'Snake',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
-          actions: [
-            IconButton(
-              tooltip: 'Settings',
-              icon: const Icon(Icons.settings),
-              onPressed: _showSettings,
-            ),
-            IconButton(
-              tooltip: 'Leaderboard',
-              icon: const Icon(Icons.leaderboard),
-              onPressed: _showLeaderboard,
-            ),
-          ],
+          backgroundColor: const Color(0xFF101010),
+          foregroundColor: Colors.white,
+          leading: _showMenu
+              ? null
+              : IconButton(
+                  tooltip: 'Main Menu',
+                  icon: const Icon(Icons.home),
+                  onPressed: () {
+                    setState(() {
+                      if (!_game.isPaused && !_game.isGameOver) {
+                        _game.togglePause();
+                      }
+                      _showMenu = true;
+                    });
+                  },
+                ),
+          actions: _showMenu
+              ? []
+              : [
+                  IconButton(
+                    tooltip: 'Settings',
+                    icon: const Icon(Icons.settings),
+                    onPressed: _showSettings,
+                  ),
+                  IconButton(
+                    tooltip: 'Leaderboard',
+                    icon: const Icon(Icons.leaderboard),
+                    onPressed: _showLeaderboard,
+                  ),
+                ],
         ),
         body: SafeArea(
-          child: Column(
-            children: [
-              _buildTopInformation(),
-
-              Expanded(
-                child: Center(
-                  child: AspectRatio(
-                    aspectRatio:
-                        SnakeGameLogic.gridWidth / SnakeGameLogic.gridHeight,
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: GestureDetector(
-                        onPanStart: _onPanStart,
-                        onPanEnd: _onPanEnd,
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            _buildGameBoard(),
-
-                            if (_game.isPaused && !_game.isGameOver)
-                              _buildPauseOverlay(),
-
-                            if (_game.isGameOver) _buildGameOverOverlay(),
-                          ],
+          child: _showMenu
+              ? _buildMainMenu()
+              : Column(
+                  children: [
+                    _buildTopInformation(),
+                    Expanded(
+                      child: Center(
+                        child: AspectRatio(
+                          aspectRatio:
+                              SnakeGameLogic.gridWidth /
+                              SnakeGameLogic.gridHeight,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: GestureDetector(
+                              onPanStart: _onPanStart,
+                              onPanEnd: _onPanEnd,
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  _buildGameBoard(),
+                                  if (_game.isPaused && !_game.isGameOver)
+                                    _buildPauseOverlay(),
+                                  if (_game.isGameOver) _buildGameOverOverlay(),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                    _buildBottomInformation(),
+                  ],
                 ),
-              ),
-
-              _buildBottomInformation(),
-            ],
-          ),
         ),
       ),
     );
